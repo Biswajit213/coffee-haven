@@ -98,23 +98,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* Features Strip */}
-      <section className="bg-white border-b border-gray-100 py-8 sm:py-10 px-4 sm:px-6">
-        <div className="container-max grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
-          {features.map(({ icon: Icon, title, desc }) => (
-            <div key={title} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                <Icon className="text-primary" size={18} />
-              </div>
-              <div>
-                <h3 className="font-semibold text-dark text-sm sm:text-base">{title}</h3>
-                <p className="text-gray-500 text-xs sm:text-sm">{desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/* Featured Products */}
       <section className="section-padding bg-background">
         <div className="container-max">
@@ -142,14 +125,8 @@ export default function Home() {
 
       {/* Promo Banner */}
       <section className="relative py-16 sm:py-20 md:py-24 px-4 sm:px-6 overflow-hidden">
-        {/* Background image */}
-        <div
-          className="absolute inset-0 bg-cover bg-center"
-          style={{ backgroundImage: "url('/promo-banner.jpg')" }}
-        />
-        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-cover bg-center" style={{ backgroundImage: "url('/promo-banner.jpg')" }} />
         <div className="absolute inset-0 bg-black/60" />
-
         <div className="relative z-10 container-max flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6 sm:gap-8">
           <div>
             <span className="inline-block bg-accent text-dark text-xs font-bold uppercase tracking-widest px-3 py-1 rounded-full mb-3">Limited Offer</span>
@@ -176,6 +153,23 @@ export default function Home() {
           </div>
         </section>
       )}
+
+      {/* Features Strip — below Best Sellers */}
+      <section className="bg-background border-t border-gray-100 py-8 sm:py-10 px-4 sm:px-6">
+        <div className="container-max grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6">
+          {features.map(({ icon: Icon, title, desc }) => (
+            <div key={title} className="flex items-center gap-3 sm:gap-4 p-3 sm:p-4">
+              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
+                <Icon className="text-primary" size={18} />
+              </div>
+              <div>
+                <h3 className="font-semibold text-dark text-sm sm:text-base">{title}</h3>
+                <p className="text-gray-500 text-xs sm:text-sm">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
     </div>
   );
 }
