@@ -1,0 +1,41 @@
+services:
+  # ── Backend ──────────────────────────────────────────
+  - type: web
+    name: coffee-haven-api
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node server.js
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGO_URI
+        sync: false        # Set manually in Render dashboard
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRE
+        value: 7d
+      - key: JWT_COOKIE_EXPIRE
+        value: 7
+      - key: GOOGLE_CLIENT_ID
+        sync: false
+      - key: GOOGLE_CLIENT_SECRET
+        sync: false
+      - key: GOOGLE_CALLBACK_URL
+        sync: false        # Set to your Render backend URL after deploy
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: CLIENT_URL
+        sync: false        # Set to your Vercel frontend URL after deploy
+      - key: FROM_NAME
+        value: Coffee Haven
+      - key: FROM_EMAIL
+        value: noreply@coffeehaven.com
