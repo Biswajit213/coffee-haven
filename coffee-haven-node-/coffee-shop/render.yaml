@@ -12,7 +12,7 @@ services:
       - key: PORT
         value: 10000
       - key: MONGO_URI
-        sync: false        # Set manually in Render dashboard
+        sync: false
       - key: JWT_SECRET
         sync: false
       - key: JWT_EXPIRE
@@ -24,7 +24,7 @@ services:
       - key: GOOGLE_CLIENT_SECRET
         sync: false
       - key: GOOGLE_CALLBACK_URL
-        sync: false        # Set to your Render backend URL after deploy
+        sync: false
       - key: CLOUDINARY_CLOUD_NAME
         sync: false
       - key: CLOUDINARY_API_KEY
@@ -34,8 +34,23 @@ services:
       - key: STRIPE_SECRET_KEY
         sync: false
       - key: CLIENT_URL
-        sync: false        # Set to your Vercel frontend URL after deploy
+        sync: false
       - key: FROM_NAME
         value: Coffee Haven
       - key: FROM_EMAIL
         value: noreply@coffeehaven.com
+
+  # ── Frontend ─────────────────────────────────────────
+  - type: web
+    name: coffee-haven-client
+    runtime: static
+    rootDir: client
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
+    envVars:
+      - key: VITE_API_URL
+        sync: false
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
