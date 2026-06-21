@@ -7,6 +7,7 @@ const {
   googleCallback, registerValidation, loginValidation,
 } = require('../controllers/authController');
 const { protect } = require('../middleware/auth');
+const { upload } = require('../config/cloudinary');
 const validate = require('../middleware/validate');
 
 router.post('/register', registerValidation, validate, register);
@@ -18,7 +19,7 @@ router.put('/reset-password/:token', resetPassword);
 
 // Profile
 router.get('/profile', protect, getProfile);
-router.put('/profile', protect, updateProfile);
+router.put('/profile', protect, upload.single('avatar'), updateProfile);
 
 // Google OAuth
 router.get('/google', passport.authenticate('google', {

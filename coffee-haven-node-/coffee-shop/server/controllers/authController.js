@@ -128,10 +128,17 @@ exports.getProfile = async (req, res, next) => {
 // @route   PUT /api/auth/profile
 exports.updateProfile = async (req, res, next) => {
   try {
-    const { name, avatar } = req.body;
+    const { name } = req.body;
+    let avatar = req.body.avatar;
+
+    // If a file was uploaded, use Cloudinary URL
+    if (req.file) {
+      avatar = req.file.path;
+    }
+
     const user = await User.findByIdAndUpdate(
       req.user.id,
-      { name, avatar },
+      { name, ...(avatar && { avatar }) },
       { new: true, runValidators: true }
     );
     res.status(200).json({ success: true, user });
