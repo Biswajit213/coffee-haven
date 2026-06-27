@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
-import { FiHome, FiBox, FiShoppingBag, FiUsers, FiMenu, FiX, FiLogOut, FiCoffee } from 'react-icons/fi';
+import { FiHome, FiBox, FiShoppingBag, FiUsers, FiMenu, FiX, FiLogOut, FiCoffee, FiImage } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import toast from 'react-hot-toast';
 
@@ -9,6 +9,7 @@ const navItems = [
   { to: '/admin/products', label: 'Products', icon: FiBox },
   { to: '/admin/orders', label: 'Orders', icon: FiShoppingBag },
   { to: '/admin/users', label: 'Users', icon: FiUsers },
+  { to: '/admin/hero', label: 'Hero Slides', icon: FiImage },
 ];
 
 export default function AdminLayout() {

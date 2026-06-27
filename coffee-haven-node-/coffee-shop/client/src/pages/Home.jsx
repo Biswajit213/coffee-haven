@@ -21,18 +21,27 @@ export default function Home() {
   const [bestSellers, setBestSellers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [currentSlide, setCurrentSlide] = useState(0);
+  const [heroSlides, setHeroSlides] = useState([
+    { image: { url: '/hero1.jpg' } },
+    { image: { url: '/hero2.jpg' } },
+  ]);
 
   useEffect(() => {
-    const fetchProducts = async () => {
+    const fetchData = async () => {
       try {
-        const [f, b] = await Promise.all([api.get('/products/featured'), api.get('/products/bestsellers')]);
+        const [f, b, h] = await Promise.all([
+          api.get('/products/featured'),
+          api.get('/products/bestsellers'),
+          api.get('/hero'),
+        ]);
         setFeatured(f.data.products);
         setBestSellers(b.data.products);
+        if (h.data.slides.length > 0) setHeroSlides(h.data.slides);
       } finally {
         setLoading(false);
       }
     };
-    fetchProducts();
+    fetchData();
   }, []);
 
   useEffect(() => {
@@ -52,7 +61,7 @@ export default function Home() {
             key={i}
             className="absolute inset-0 transition-opacity duration-1000"
             style={{
-              backgroundImage: `url('${slide.image}')`,
+              backgroundImage: `url('${slide.image?.url || slide.image}')`,
               backgroundSize: 'cover',
               backgroundPosition: 'center',
               opacity: i === currentSlide ? 1 : 0,

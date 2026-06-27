@@ -33,6 +33,7 @@ import AdminProducts from './pages/admin/AdminProducts';
 import AdminOrders from './pages/admin/AdminOrders';
 import AdminUsers from './pages/admin/AdminUsers';
 import ProductForm from './pages/admin/ProductForm';
+import AdminHero from './pages/admin/AdminHero';
 
 import NotFound from './pages/NotFound';
 
@@ -74,6 +75,7 @@ export default function App() {
           <Route path="/admin/products/:id/edit" element={<ProductForm />} />
           <Route path="/admin/orders" element={<AdminOrders />} />
           <Route path="/admin/users" element={<AdminUsers />} />
+          <Route path="/admin/hero" element={<AdminHero />} />
         </Route>
       </Route>
 

@@ -17,6 +17,7 @@ const cartRoutes = require('./routes/cartRoutes');
 const orderRoutes = require('./routes/orderRoutes');
 const adminRoutes = require('./routes/adminRoutes');
 const newsletterRoutes = require('./routes/newsletterRoutes');
+const heroRoutes = require('./routes/heroRoutes');
 const errorHandler = require('./middleware/errorHandler');
 
 connectDB();
@@ -87,6 +88,7 @@ app.use('/api/cart', cartRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/newsletter', newsletterRoutes);
+app.use('/api/hero', heroRoutes);
 
 // Health check
 app.get('/api/health', (req, res) =>
