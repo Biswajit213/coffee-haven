@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
-import { FiArrowLeft, FiMapPin, FiCreditCard } from 'react-icons/fi';
+import { FiArrowLeft, FiMapPin, FiCreditCard, FiDownload } from 'react-icons/fi';
 import api from '../../services/api';
 import Spinner from '../../components/Spinner';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 const STATUS_COLORS = {
   Pending: 'bg-yellow-100 text-yellow-700',
@@ -13,6 +15,158 @@ const STATUS_COLORS = {
 };
 
 const STATUS_STEPS = ['Pending', 'Processing', 'Shipped', 'Delivered'];
+
+const downloadInvoice = async (order) => {
+  const doc = new jsPDF();
+  const pageW = doc.internal.pageSize.getWidth();
+  const primary = [111, 78, 55];
+
+  // ── Load logo as base64 ────────────────────────────────────
+  let logoBase64 = null;
+  try {
+    const res = await fetch('/logo.png');
+    const blob = await res.blob();
+    logoBase64 = await new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    // logo not available, will use text fallback
+  }
+
+  // ── Header background ──────────────────────────────────────
+  doc.setFillColor(...primary);
+  doc.rect(0, 0, pageW, 40, 'F');
+
+  // Logo image or text fallback
+  if (logoBase64) {
+    doc.addImage(logoBase64, 'PNG', 6, 4, 30, 30);
+  } else {
+    doc.setFillColor(255, 255, 255);
+    doc.circle(20, 20, 10, 'F');
+    doc.setFontSize(14);
+    doc.setTextColor(...primary);
+    doc.setFont('helvetica', 'bold');
+    doc.text('CH', 20, 24, { align: 'center' });
+  }
+
+  // Shop name & tagline
+  doc.setTextColor(255, 255, 255);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Coffee Haven', 40, 16);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Premium Coffee Shop  |  hello@coffeehaven.com', 40, 24);
+  doc.text('123 Coffee Lane, Brew City, CA 90210', 40, 30);
+
+  // INVOICE label (right side)
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 215, 0);
+  doc.text('INVOICE', pageW - 14, 22, { align: 'right' });
+
+  // ── Invoice meta ────────────────────────────────────────────
+  doc.setTextColor(50, 50, 50);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+
+  const orderId = order._id.slice(-8).toUpperCase();
+  const date = new Date(order.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+
+  doc.setFont('helvetica', 'bold');
+  doc.text('Order ID:', 14, 50);
+  doc.text('Date:', 14, 57);
+  doc.text('Status:', 14, 64);
+  doc.text('Payment:', 14, 71);
+
+  doc.setFont('helvetica', 'normal');
+  doc.text(`#${orderId}`, 45, 50);
+  doc.text(date, 45, 57);
+  doc.text(order.orderStatus, 45, 64);
+  doc.text(`${order.paymentInfo?.method?.toUpperCase()} — ${order.paymentInfo?.status?.toUpperCase()}`, 45, 71);
+
+  // ── Bill To ─────────────────────────────────────────────────
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(10);
+  doc.setTextColor(...primary);
+  doc.text('BILL TO:', pageW / 2, 50);
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(50, 50, 50);
+  doc.setFontSize(9);
+  doc.text(order.shippingInfo?.name || '', pageW / 2, 57);
+  doc.text(order.shippingInfo?.address || '', pageW / 2, 63);
+  doc.text(`${order.shippingInfo?.city || ''}, ${order.shippingInfo?.state || ''} ${order.shippingInfo?.zipCode || ''}`, pageW / 2, 69);
+  doc.text(order.shippingInfo?.phone || '', pageW / 2, 75);
+
+  // ── Items table ─────────────────────────────────────────────
+  autoTable(doc, {
+    startY: 88,
+    head: [['#', 'Item', 'Price', 'Qty', 'Total']],
+    body: order.items.map((item, i) => [
+      i + 1,
+      item.name,
+      `$${item.price.toFixed(2)}`,
+      item.quantity,
+      `$${(item.price * item.quantity).toFixed(2)}`,
+    ]),
+    headStyles: {
+      fillColor: primary,
+      textColor: [255, 255, 255],
+      fontStyle: 'bold',
+      fontSize: 9,
+    },
+    bodyStyles: { fontSize: 9, textColor: [50, 50, 50] },
+    alternateRowStyles: { fillColor: [250, 246, 243] },
+    columnStyles: {
+      0: { cellWidth: 10, halign: 'center' },
+      2: { halign: 'right' },
+      3: { halign: 'center' },
+      4: { halign: 'right' },
+    },
+    margin: { left: 14, right: 14 },
+  });
+
+  // ── Totals ──────────────────────────────────────────────────
+  const finalY = doc.lastAutoTable.finalY + 6;
+
+  const totals = [
+    ['Subtotal', `$${order.itemsPrice?.toFixed(2)}`],
+    ['Tax', `$${order.taxPrice?.toFixed(2)}`],
+    ['Shipping', order.shippingPrice === 0 ? 'Free' : `$${order.shippingPrice?.toFixed(2)}`],
+  ];
+
+  totals.forEach(([label, value], i) => {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(80, 80, 80);
+    doc.text(label, pageW - 55, finalY + i * 6);
+    doc.text(value, pageW - 14, finalY + i * 6, { align: 'right' });
+  });
+
+  // Total row
+  const totalY = finalY + totals.length * 6 + 4;
+  doc.setFillColor(...primary);
+  doc.roundedRect(pageW - 65, totalY - 5, 51, 10, 2, 2, 'F');
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('TOTAL', pageW - 55, totalY + 2);
+  doc.text(`$${order.totalPrice?.toFixed(2)}`, pageW - 14, totalY + 2, { align: 'right' });
+
+  // ── Footer ──────────────────────────────────────────────────
+  const pageH = doc.internal.pageSize.getHeight();
+  doc.setFillColor(...primary);
+  doc.rect(0, pageH - 16, pageW, 16, 'F');
+  doc.setFontSize(8);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(255, 255, 255);
+  doc.text('Thank you for your order! ☕  coffee-haven-client.onrender.com', pageW / 2, pageH - 7, { align: 'center' });
+
+  doc.save(`CoffeeHaven-Invoice-${orderId}.pdf`);
+};
 
 export default function OrderDetail() {
   const { id } = useParams();
@@ -41,7 +195,16 @@ export default function OrderDetail() {
             <p className="text-gray-400 text-xs">Order #{order._id.slice(-8).toUpperCase()}</p>
             <h1 className="text-xl sm:text-3xl font-heading font-bold text-dark">Order Details</h1>
           </div>
-          <span className={`badge text-xs sm:text-sm px-3 py-1.5 ${STATUS_COLORS[order.orderStatus]}`}>{order.orderStatus}</span>
+          <div className="flex items-center gap-3">
+            <span className={`badge text-xs sm:text-sm px-3 py-1.5 ${STATUS_COLORS[order.orderStatus]}`}>{order.orderStatus}</span>
+            <button
+              onClick={() => downloadInvoice(order)}
+              className="flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-primary-dark transition-colors"
+            >
+              <FiDownload size={15} />
+              Download Invoice
+            </button>
+          </div>
         </div>
 
         {/* Progress tracker */}

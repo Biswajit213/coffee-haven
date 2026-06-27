@@ -1,7 +1,11 @@
 const Order = require('../models/Order');
 const Cart = require('../models/Cart');
 const Product = require('../models/Product');
-const stripe = require('stripe')(process.env.STRIPE_SECRET_KEY);
+
+// Only init Stripe if key is configured
+const isStripeConfigured =
+  process.env.STRIPE_SECRET_KEY && process.env.STRIPE_SECRET_KEY !== 'your_stripe_secret_key';
+const stripe = isStripeConfigured ? require('stripe')(process.env.STRIPE_SECRET_KEY) : null;
 
 // @desc    Create order
 // @route   POST /api/orders
@@ -9,27 +13,38 @@ exports.createOrder = async (req, res, next) => {
   try {
     const { shippingInfo, paymentMethod } = req.body;
 
+    // Block stripe if not configured
+    if (paymentMethod === 'stripe' && !stripe) {
+      return res.status(400).json({ success: false, message: 'Online payment is not configured yet. Please use Cash on Delivery.' });
+    }
+
     // Get user cart
     const cart = await Cart.findOne({ user: req.user.id }).populate('items.product');
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ success: false, message: 'Cart is empty' });
     }
 
+    // Validate all cart items have populated products
+    const validItems = cart.items.filter((item) => item.product && item.product._id);
+    if (validItems.length === 0) {
+      return res.status(400).json({ success: false, message: 'Cart items are invalid. Please refresh your cart.' });
+    }
+
     // Calculate prices
-    const itemsPrice = cart.items.reduce((acc, item) => acc + item.price * item.quantity, 0);
-    const taxPrice = Math.round(itemsPrice * 0.1 * 100) / 100; // 10% tax
-    const shippingPrice = itemsPrice > 50 ? 0 : 5.99; // Free shipping over $50
+    const itemsPrice = validItems.reduce((acc, item) => acc + item.price * item.quantity, 0);
+    const taxPrice = Math.round(itemsPrice * 0.1 * 100) / 100;
+    const shippingPrice = itemsPrice > 50 ? 0 : 5.99;
     const totalPrice = Math.round((itemsPrice + taxPrice + shippingPrice) * 100) / 100;
 
-    const orderItems = cart.items.map((item) => ({
+    const orderItems = validItems.map((item) => ({
       product: item.product._id,
       name: item.product.name,
-      image: item.product.images[0]?.url || '',
+      image: item.product.images?.[0]?.url || '',
       price: item.price,
       quantity: item.quantity,
     }));
 
-    let paymentInfo = { method: paymentMethod };
+    let paymentInfo = { method: paymentMethod, status: 'pending' };
 
     // Handle Stripe payment
     if (paymentMethod === 'stripe') {
@@ -39,7 +54,6 @@ exports.createOrder = async (req, res, next) => {
         metadata: { userId: req.user.id.toString() },
       });
       paymentInfo.stripePaymentId = paymentIntent.id;
-      paymentInfo.status = 'pending';
     }
 
     const order = await Order.create({
@@ -57,7 +71,7 @@ exports.createOrder = async (req, res, next) => {
     await Cart.findOneAndDelete({ user: req.user.id });
 
     // Update stock
-    for (const item of cart.items) {
+    for (const item of validItems) {
       await Product.findByIdAndUpdate(item.product._id, {
         $inc: { stock: -item.quantity },
       });
@@ -66,7 +80,9 @@ exports.createOrder = async (req, res, next) => {
     res.status(201).json({
       success: true,
       order,
-      clientSecret: paymentMethod === 'stripe' ? (await stripe.paymentIntents.retrieve(paymentInfo.stripePaymentId)).client_secret : null,
+      clientSecret: paymentMethod === 'stripe' && paymentInfo.stripePaymentId
+        ? (await stripe.paymentIntents.retrieve(paymentInfo.stripePaymentId)).client_secret
+        : null,
     });
   } catch (error) {
     next(error);

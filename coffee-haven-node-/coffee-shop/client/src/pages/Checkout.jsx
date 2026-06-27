@@ -25,11 +25,14 @@ export default function Checkout() {
     setLoading(true);
     try {
       const { data } = await api.post('/orders', { shippingInfo, paymentMethod });
+      if (!data.order || !data.order._id) {
+        throw new Error('Order creation failed. Please try again.');
+      }
       await clearCart();
       toast.success('Order placed successfully!');
       navigate(`/orders/${data.order._id}`);
     } catch (err) {
-      toast.error(err.response?.data?.message || 'Failed to place order');
+      toast.error(err.response?.data?.message || err.message || 'Failed to place order');
     } finally {
       setLoading(false);
     }
